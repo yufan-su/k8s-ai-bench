@@ -20,7 +20,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -154,49 +153,6 @@ func printUsage() {
 	fmt.Fprintf(os.Stderr, "  run       Run evaluation benchmarks\n")
 	fmt.Fprintf(os.Stderr, "  analyze   Analyze results from previous benchmark runs\n\n")
 	fmt.Fprintf(os.Stderr, "Run '%s <command> --help' for more information on a command.\n", os.Args[0])
-}
-
-func kindClusterExists(clusterName string) (bool, error) {
-	cmd := exec.Command("kind", "get", "clusters")
-	output, err := cmd.Output()
-	if err != nil {
-		return false, fmt.Errorf("failed to run 'kind get clusters': %w", err)
-	}
-	clusters := strings.Split(string(output), "\n")
-	for _, cluster := range clusters {
-		if cluster == clusterName {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
-func createKindCluster(clusterName string) error {
-	var createErr error
-	for retry := range 3 {
-		if retry > 0 {
-			fmt.Printf("Retrying cluster creation, attempt %d\n", retry+1)
-			time.Sleep(5 * time.Second)
-		}
-		createCmd := exec.Command("kind", "create", "cluster", "--name", clusterName, "--wait", "5m")
-		fmt.Printf("Creating kind cluster %q\n", clusterName)
-		createCmd.Stdout = os.Stdout
-		createCmd.Stderr = os.Stderr
-		createErr = createCmd.Run()
-		if createErr == nil {
-			return nil
-		}
-		fmt.Printf("failed to create kind cluster, retrying...: %v\n", createErr)
-	}
-	return fmt.Errorf("failed to create kind cluster after multiple retries: %w", createErr)
-}
-
-func deleteKindCluster(clusterName string) error {
-	deleteCmd := exec.Command("kind", "delete", "cluster", "--name", clusterName)
-	fmt.Printf("Deleting kind cluster %q\n", clusterName)
-	deleteCmd.Stdout = os.Stdout
-	deleteCmd.Stderr = os.Stderr
-	return deleteCmd.Run()
 }
 
 type Strings []string

@@ -28,6 +28,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gke-labs/k8s-ai-bench/pkg/cluster"
+	"github.com/gke-labs/k8s-ai-bench/pkg/cluster/kind"
 	"github.com/gke-labs/k8s-ai-bench/pkg/model"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
@@ -37,14 +39,15 @@ func runEvaluation(ctx context.Context, config EvalConfig) error {
 	logger := klog.FromContext(ctx)
 	if config.ClusterCreationPolicy != DoNotCreate {
 		clusterName := "k8s-ai-bench-eval"
-		clusterExists, err := kindClusterExists(clusterName)
+		var clusterProvider cluster.Provider = kind.New()
+		clusterExists, err := clusterProvider.Exists(clusterName)
 		if err != nil {
 			return fmt.Errorf("failed to check if kind cluster exists: %w", err)
 		}
 
 		if config.ClusterCreationPolicy == AlwaysCreate && clusterExists {
 			logger.Info("Deleting existing kind cluster for evaluation run", "name", clusterName)
-			if err := deleteKindCluster(clusterName); err != nil {
+			if err := clusterProvider.Delete(clusterName); err != nil {
 				return fmt.Errorf("failed to delete existing kind cluster: %w", err)
 			}
 			clusterExists = false
@@ -52,14 +55,14 @@ func runEvaluation(ctx context.Context, config EvalConfig) error {
 
 		if !clusterExists {
 			logger.Info("Creating kind cluster for evaluation run", "name", clusterName)
-			if err := createKindCluster(clusterName); err != nil {
+			if err := clusterProvider.Create(clusterName); err != nil {
 				return fmt.Errorf("failed to create kind cluster: %w", err)
 			}
 		}
 
 		// Get kubeconfig
 		logger.Info("Getting kubeconfig for kind cluster", "name", clusterName)
-		kubeconfigBytes, err := exec.Command("kind", "get", "kubeconfig", "--name", clusterName).Output()
+		kubeconfigBytes, err := clusterProvider.GetKubeconfig(clusterName)
 		if err != nil {
 			return fmt.Errorf("failed to get kubeconfig for kind cluster: %w", err)
 		}
