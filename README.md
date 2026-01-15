@@ -36,6 +36,12 @@ Run the benchmark against your agent binary. Results will be saved to the `.buil
 ### `run` Subcommand
 The `run` subcommand executes the benchmark evaluations. It creates ephemeral clusters to ensure test isolation. We support two platforms for the test environment: **Kind** (default) and **vCluster**.
 
+**vCluster Prerequisites:**
+To use `vcluster`, you must have:
+* The `vcluster` [CLI](https://www.vcluster.com/docs/vcluster/) installed.
+* A running host Kubernetes cluster.
+* A kubecontext to connect to the host cluster (passed via `--host-cluster-context`).
+
 ```sh
 # Run with specific LLM provider and model
 ./k8s-ai-bench run \
