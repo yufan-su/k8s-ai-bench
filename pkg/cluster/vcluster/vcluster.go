@@ -25,12 +25,14 @@ import (
 )
 
 type Provider struct {
-	HostContext string
+	HostContext    string
+	HostKubeConfig string
 }
 
-func New(hostContext string) cluster.Provider {
+func New(hostContext, hostKubeConfig string) cluster.Provider {
 	return &Provider{
-		HostContext: hostContext,
+		HostContext:    hostContext,
+		HostKubeConfig: hostKubeConfig,
 	}
 }
 
@@ -41,6 +43,7 @@ func (p *Provider) Exists(name string) (bool, error) {
 	}
 
 	cmd := exec.Command("vcluster", args...)
+	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", p.HostKubeConfig))
 	output, err := cmd.Output()
 	if err != nil {
 		return false, fmt.Errorf("failed to run 'vcluster list': %w", err)
@@ -76,6 +79,7 @@ func (p *Provider) Create(name string) error {
 		}
 
 		createCmd := exec.Command("vcluster", args...)
+		createCmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", p.HostKubeConfig))
 		fmt.Printf("Creating vcluster %q\n", name)
 		createCmd.Stdout = os.Stdout
 		createCmd.Stderr = os.Stderr
@@ -95,6 +99,7 @@ func (p *Provider) Delete(name string) error {
 	}
 
 	deleteCmd := exec.Command("vcluster", args...)
+	deleteCmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", p.HostKubeConfig))
 	fmt.Printf("Deleting vcluster %q\n", name)
 	deleteCmd.Stdout = os.Stdout
 	deleteCmd.Stderr = os.Stderr
@@ -108,7 +113,9 @@ func (p *Provider) GetKubeconfig(name string) ([]byte, error) {
 		args = append(args, "--context", p.HostContext)
 	}
 
-	config, err := exec.Command("vcluster", args...).Output()
+	cmd := exec.Command("vcluster", args...)
+	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", p.HostKubeConfig))
+	config, err := cmd.Output()
 
 	// Wait 60 secs for the local background proxy on docker to be running.
 	exec.Command("sleep", "60").Run()

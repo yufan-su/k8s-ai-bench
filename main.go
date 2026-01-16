@@ -112,6 +112,7 @@ type EvalConfig struct {
 	ClusterCreationPolicy ClusterCreationPolicy
 	ClusterProvider       string
 	HostClusterContext    string
+	HostClusterKubeConfig string
 
 	OutputDir string
 }
@@ -227,10 +228,15 @@ func runEvals(ctx context.Context) error {
 	flag.BoolVar(&mcpClient, "mcp-client", mcpClient, "Enable MCP client in kubectl-ai")
 	flag.StringVar(&config.ClusterProvider, "cluster-provider", clusterProvider, "Cluster provider to use (kind or vcluster)")
 	flag.StringVar(&config.HostClusterContext, "host-cluster-context", hostClusterContext, "Host cluster context for vcluster (optional)")
+	flag.StringVar(&config.HostClusterKubeConfig, "host-cluster-kubeconfig", "", "Host cluster kubeconfig for vcluster (optional, defaults to --kubeconfig)")
 	flag.Parse()
 
-	if config.ClusterProvider == "vcluster" && config.HostClusterContext == "" {
-		return fmt.Errorf("--host-cluster-context is required when using --cluster-provider=vcluster")
+	if config.ClusterProvider == "vcluster" {
+		if config.HostClusterContext == "" {
+			return fmt.Errorf("--host-cluster-context is required when using --cluster-provider=vcluster")
+		}
+		fmt.Println("When using vCluster as cluster provider, defaulting cluster-creation-policy to DoNotCreate")
+		config.ClusterCreationPolicy = DoNotCreate
 	}
 
 	if config.KubeConfig == "" {
@@ -242,6 +248,16 @@ func runEvals(ctx context.Context) error {
 		return fmt.Errorf("failed to expand kubeconfig path %q: %w", config.KubeConfig, err)
 	}
 	config.KubeConfig = expandedKubeconfig
+
+	if config.HostClusterKubeConfig == "" {
+		config.HostClusterKubeConfig = config.KubeConfig
+	} else {
+		expandedHostKubeconfig, err := expandPath(config.HostClusterKubeConfig)
+		if err != nil {
+			return fmt.Errorf("failed to expand host cluster kubeconfig path %q: %w", config.HostClusterKubeConfig, err)
+		}
+		config.HostClusterKubeConfig = expandedHostKubeconfig
+	}
 
 	defaultModels := map[string][]string{
 		"gemini": {"gemini-2.5-pro"},
