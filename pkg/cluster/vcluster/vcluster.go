@@ -27,13 +27,49 @@ import (
 type Provider struct {
 	HostContext    string
 	HostKubeConfig string
+	ValuesPath     string
 }
 
-func New(hostContext, hostKubeConfig string) cluster.Provider {
-	return &Provider{
+func New(hostContext, hostKubeConfig string) (cluster.Provider, func(), error) {
+	// Create a temporary file for vcluster values
+	valuesContent := `sync:
+  toHost:
+    persistentVolumeClaims:
+      enabled: true
+    persistentVolumes:
+      enabled: true
+    storageClasses:
+      enabled: true
+`
+	tmpFile, err := os.CreateTemp("", "vcluster-values-*.yaml")
+	fmt.Printf("create a temp vcluster values file: %s\n", tmpFile.Name())
+	if err != nil {
+		fmt.Printf("failed to create temp values file: %v\n", err)
+		return nil, func() {}, err
+	}
+
+	if _, err := tmpFile.Write([]byte(valuesContent)); err != nil {
+		fmt.Printf("failed to write to temp values file: %v\n", err)
+		os.Remove(tmpFile.Name())
+		return nil, func() {}, err
+	}
+	if err := tmpFile.Close(); err != nil {
+		fmt.Printf("failed to close temp values file: %v\n", err)
+		os.Remove(tmpFile.Name())
+		return nil, func() {}, err
+	}
+
+	p := &Provider{
 		HostContext:    hostContext,
 		HostKubeConfig: hostKubeConfig,
+		ValuesPath:     tmpFile.Name(),
 	}
+
+	cleanup := func() {
+		os.Remove(tmpFile.Name())
+	}
+
+	return p, cleanup, nil
 }
 
 func (p *Provider) Exists(name string) (bool, error) {
@@ -73,7 +109,7 @@ func (p *Provider) Create(name string) error {
 			time.Sleep(5 * time.Second)
 		}
 
-		args := []string{"create", name, "--connect=false", "--values", "pkg/cluster/vcluster/vcluster.yaml"}
+		args := []string{"create", name, "--connect=false", "--values", p.ValuesPath}
 		if p.HostContext != "" {
 			args = append(args, "--context", p.HostContext)
 		}
