@@ -73,7 +73,7 @@ func (p *Provider) Create(name string) error {
 			time.Sleep(5 * time.Second)
 		}
 
-		args := []string{"create", name, "--connect=false"}
+		args := []string{"create", name, "--connect=false", "--values", "pkg/cluster/vcluster/vcluster.yaml"}
 		if p.HostContext != "" {
 			args = append(args, "--context", p.HostContext)
 		}

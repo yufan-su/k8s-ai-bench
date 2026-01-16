@@ -1,0 +1,8 @@
+sync:
+  toHost:
+    persistentVolumeClaims:
+      enabled: true
+    persistentVolumes:
+      enabled: true
+    storageClasses:
+      enabled: true
