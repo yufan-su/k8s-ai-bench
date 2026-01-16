@@ -69,7 +69,7 @@ func (p *Provider) Create(name string) error {
 			fmt.Printf("Retrying vcluster creation, attempt %d\n", retry+1)
 			time.Sleep(5 * time.Second)
 		}
-		
+
 		args := []string{"create", name, "--connect=false"}
 		if p.HostContext != "" {
 			args = append(args, "--context", p.HostContext)
@@ -107,7 +107,7 @@ func (p *Provider) GetKubeconfig(name string) ([]byte, error) {
 	if p.HostContext != "" {
 		args = append(args, "--context", p.HostContext)
 	}
-	
+
 	config, err := exec.Command("vcluster", args...).Output()
 
 	// Wait 60 secs for the local background proxy on docker to be running.

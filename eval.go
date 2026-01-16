@@ -312,14 +312,14 @@ func evaluateTask(ctx context.Context, config EvalConfig, taskID string, task Ta
 	}
 
 	x := &TaskExecution{
-		AgentBin:      config.AgentBin,
-		kubeConfig:    config.KubeConfig,
-		result:        &result,
-		llmConfig:     llmConfig,
-		log:           multiWriter,
-		task:          &task,
-		taskID:        taskID,
-		taskOutputDir: taskOutputDir,
+		AgentBin:        config.AgentBin,
+		kubeConfig:      config.KubeConfig,
+		result:          &result,
+		llmConfig:       llmConfig,
+		log:             multiWriter,
+		task:            &task,
+		taskID:          taskID,
+		taskOutputDir:   taskOutputDir,
 		clusterProvider: clusterProvider,
 	}
 
